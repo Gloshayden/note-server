@@ -1,0 +1,6 @@
+server/__pycache__
+server/venv
+server/key.key
+server/accounts
+server/logs
+server/notes

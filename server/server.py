@@ -1,7 +1,8 @@
-import asyncio, os, random, traceback, encryption
+import asyncio, os, traceback, sys, app
 from websockets.server import serve
 from datetime import datetime
 from cryptography.fernet import Fernet
+sys.dont_write_bytecode = True
 
 
 if os.path.exists("logs") == False: os.mkdir("logs")
@@ -9,19 +10,12 @@ if os.path.exists("accounts") == False: os.mkdir("accounts")
 if os.path.exists("notes") == False: os.mkdir("notes")
 if os.path.exists("key.key") == False:
     key = Fernet.generate_key()
-    with open("key.key","xb") as f:
+    with open("key.key","wb") as f:
         f.write(key)
 
-def login(username, password):
-    return
-
-with open("key.key","rb") as f:
-    keyinfo = f.read()
-key = Fernet(keyinfo)
-tstenc = encryption.encryptString("test",keyinfo)
-print(tstenc)
-testdec = encryption.decryptString(tstenc,keyinfo)
-print(testdec)
+import encryption
+print(app.createNote("test", "test", "test", "test"))
+print(app.readNote("test","test","test"))
 '''async def handler(websocket):
     try:
         async for message in websocket:

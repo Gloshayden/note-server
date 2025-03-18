@@ -18,11 +18,11 @@ def decryptFile(FileName):
         f.write(decoded_file)
     return decoded_file
 
-def encodeString(string):
+def encryptString(string):
     encoded_string = cipher_suite.encrypt(bytes(string,"utf-8"))
     return encoded_string
 
-def decodeString(string):
+def decryptString(string):
     decoded_Bytes = cipher_suite.decrypt(string)
     decoded_string = str(decoded_Bytes,"utf-8")
     return decoded_string

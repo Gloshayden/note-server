@@ -2,7 +2,7 @@ import os,encryption,json,time
 
 def register(username, password):
     if not os.path.exists("accounts/"+username):
-        account = {"username":username,"password":password, "time": time.time}
+        account = {"username":username,"password":password,"created":time.time()}
         with open("accounts/"+username,"w") as f:
             json.dump(account,f)
         encryption.encryptFile("accounts/"+username)
@@ -17,14 +17,13 @@ def login(username, password):
             account = json.load(f)
         encryption.encryptFile("accounts/"+username)
         if account["password"] == password:
-            return account
+            return "success"
         else: return "incorrect"
     else: return "unknown"
 
 def createNote(username, password, title, content):
     note = {"title":title,"content":content}
-    success = loadAccount(username, password)
-    print(success)
+    success, account = loadAccount(username, password)
     if success == "success":
         if os.path.exists(f"notes/{username}/{title}"):
             return "exists"
@@ -36,17 +35,16 @@ def createNote(username, password, title, content):
     else: return "failed"
 
 def readNote(username, password, title):
-    success = loadAccount(username, password)
-    print(success)
+    success, account = loadAccount(username, password)
     if success == "success":
         if os.path.exists(f"notes/{username}/{title}"):
             encryption.decryptFile(f"notes/{username}/{title}")
             with open(f"notes/{username}/{title}","r") as f:
-                content = f.read()
+                content = json.load(f)
             encryption.encryptFile(f"notes/{username}/{title}")
-            return content
-        else: return "exists"
-    else: return "failed"
+            return "success", content
+        else: return "exists", "failed"
+    else: return "failed", "failed"
 
 def loadAccount(username, password):
     if os.path.exists("accounts/"+username):
@@ -56,5 +54,37 @@ def loadAccount(username, password):
         encryption.encryptFile("accounts/"+username)
         if account["password"] == password:
             return "success", account
-        else: return "incorrect"
-    else: return "unknown"
+        else: return "incorrect", "failed"
+    else: return "unknown", "failed"
+
+def deleteNote(username, password, title):
+    success, account = loadAccount(username, password)
+    if success == "success":
+        if os.path.exists(f"notes/{username}/{title}"):
+            os.remove(f"notes/{username}/{title}")
+            return "success"
+        else: return "Not Found"
+    else: return "incorrect"
+
+def editNote(username, password, title, Newcontent, Newtitle, conORtitle):
+    success, account = loadAccount(username, password)
+    if success == "success":
+        if conORtitle == "content":
+            encryption.decryptFile(f"notes/{username}/{title}")
+            note = {"title":title,"content":Newcontent}
+            with open(f"notes/{username}/{title}","w") as f:
+                json.dump(note,f)
+            encryption.encryptFile(f"notes/{username}/{title}")
+            return "success"
+        elif conORtitle == "title":
+            success, contents = readNote(username, password, title)
+            content = contents["content"]
+            encryption.decryptFile(f"notes/{username}/{title}")
+            note = {"title":Newtitle,"content":content}
+            os.rename(f"notes/{username}/{title}",f"notes/{username}/{Newtitle}")
+            with open(f"notes/{username}/{Newtitle}","w") as f:
+                json.dump(note,f)
+            encryption.encryptFile(f"notes/{username}/{Newtitle}")
+            return "success"
+        else: return "unknown call"
+    else: return "incorrect"

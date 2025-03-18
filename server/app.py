@@ -88,3 +88,10 @@ def editNote(username, password, title, Newcontent, Newtitle, conORtitle):
             return "success"
         else: return "unknown call"
     else: return "incorrect"
+
+def getNotes(username, password):
+    success, account = loadAccount(username, password)
+    if success == "success":
+        notes = os.listdir(f"notes/{username}")
+        return "success", notes
+    else: return "failed", "failed"

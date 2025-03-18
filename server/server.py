@@ -136,6 +136,22 @@ async def handler(websocket):
                     print(f"{username} tried editing note: {title} with incorrect call")
                 else: #unknown error
                     await websocket.send("err")
+            
+            elif message == "getNotes": #getting notes
+                message = json.loads(await websocket.recv())
+                username = message["username"] 
+                password = message["password"]
+
+                success, notes = app.getNotes(username, password)
+                if success == "success": #get success
+                    await websocket.send("success")
+                    print(f"account {username} got notes")
+                    await websocket.send(json.dumps(notes))
+                elif success == "failed": #incorrect details
+                    await websocket.send("failed")
+                    print(f"{username} tried getting notes with incorrect password")
+                else: #unknown error
+                    await websocket.send("err")
 
             else: #api call not recognized
                 print(f"unknown api call: {message} disconnecting client")

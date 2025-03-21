@@ -81,7 +81,6 @@ async def handler(websocket):
 
                 success, notecontent = app.readNote(username, password, title)
                 if success == "success": #read success
-                    await websocket.send("success")
                     print(f"account {username} read note {title}")
                     await websocket.send(json.dumps(notecontent))
                 elif success == "exists": #note doest not exist
@@ -144,7 +143,6 @@ async def handler(websocket):
 
                 success, notes = app.getNotes(username, password)
                 if success == "success": #get success
-                    await websocket.send("success")
                     print(f"account {username} got notes")
                     await websocket.send(json.dumps(notes))
                 elif success == "failed": #incorrect details
@@ -159,7 +157,7 @@ async def handler(websocket):
                 return
 
     except Exception as e: #error handling
-        if str(e) != "no close frame received or sent":
+        if str(e) != "sent 1011 (internal error) keepalive ping timeout; no close frame received":
             now = datetime.now()
             name = now.strftime("%H_%M_%S")
             print(f"ERROR OCCURED! saved error to logs, {name}")

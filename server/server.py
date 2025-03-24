@@ -157,7 +157,7 @@ async def handler(websocket):
                 return
 
     except Exception as e: #error handling
-        if str(e) != "sent 1011 (internal error) keepalive ping timeout; no close frame received":
+        if str(e) != "no close frame received":
             now = datetime.now()
             name = now.strftime("%H_%M_%S")
             print(f"ERROR OCCURED! saved error to logs, {name}")

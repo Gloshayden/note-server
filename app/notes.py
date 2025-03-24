@@ -1,24 +1,149 @@
-import json, os, websocket
+import json, os, websocket, time
+from cryptography.fernet import Fernet
+
+def encryptFile(FileName):
+    with open(FileName,"rb") as f:
+        Original = f.read()
+    encoded_file = cipher_suite.encrypt(Original)
+    with open(FileName,"wb") as f:
+        f.write(encoded_file)
+    return encoded_file
+
+def decryptFile(FileName):
+    with open(FileName,"rb") as f:
+        Encrypted = f.read()
+    decoded_file = cipher_suite.decrypt(Encrypted)
+    with open(FileName,"wb") as f:
+        f.write(decoded_file)
+    return decoded_file
+
+def readSettings():
+    with open("settings/settings.json","rb") as f:
+        decryptFile("settings/settings.json")
+        settings = json.load(f)
+    encryptFile("settings/settings.json")
+    return settings
+
+def saveAccount(username, password):
+    print("Do you want to save the account details? (y/n)")
+    message = input().lower()
+    if message == "y":
+        decryptFile("settings/settings.json")
+        settings = {"username":username,"password":password,"server":server}
+        with open("settings/settings.json","w") as f:
+            json.dump(settings,f)
+        encryptFile("settings/settings.json")
+        settings = readSettings()
+        username = settings["username"]
+        password = settings["password"]
+        return username, password
+    else:
+        print("account details not saved")
+
+def changeSettings(choice):
+    print("what would you like to do?")
+    print("delete (setting) or change (setting)")
+    message = input().lower()
+    if message == "delete":
+        decryptFile("settings/settings.json")
+        if choice == "server": message = {"username":username,"password":password,"server":""}
+        elif choice == "username": message = {"username":"","password":password,"server":server}
+        elif choice == "password": message = {"username":username,"password":"","server":server}
+        with open("settings/settings.json","w") as f:
+            json.dump(message,f)
+        encryptFile("settings/settings.json")
+        settings = readSettings()
+        return settings
+    elif message == "change":
+        decryptFile("settings/settings.json")
+        if choice == "server": message = {"username":username,"password":password,"server":input()}
+        elif choice == "username": message = {"username":input(),"password":password,"server":server}
+        elif choice == "password": message = {"username":username,"password":input(),"server":server}
+        with open("settings/settings.json","w") as f:
+            json.dump(message,f)
+        encryptFile("settings/settings.json")
+        settings = readSettings()
+        return settings
+
+if not os.path.exists("settings"):
+    os.mkdir("settings")
+    key = Fernet.generate_key()
+    with open("settings/key.key","wb") as f:
+        f.write(key)
+    cipher_suite = Fernet(key)
+    settings = {"username":"","password":"","server":""}
+    with open("settings/settings.json","w") as f:
+        json.dump(settings,f)
+    encryptFile("settings/settings.json")
+with open("settings/key.key","rb") as f:
+    keyinfo = f.read()
+cipher_suite = Fernet(keyinfo)
 
 app = True
 Connectloop = True
 account = False
 ws = websocket.WebSocket()
 
+settings = readSettings()
+username = settings["username"]
+password = settings["password"]
+server = settings["server"]
+
 print("Hi there welcome to the notes app!")
-print ("please enter in the ws url")
+print("please enter in the ws url")
 print("example: ws://127.0.0.1:8000")
 while Connectloop == True:
-    url = input()
+    if server != "":
+        url = server
+        print(f"connecting to {url}")
+        try:
+            ws.connect(url)
+            Connectloop = False
+        except:
+            print("Could not connect is the server up?")
+            print("retrying in 5 seconds")
+            time.sleep(5)
+    else:
+        url = input()
     try:
         ws.connect(url)
-        Connectloop = False
+        if server == "":
+            print("Do you want to save the server URL? (y/n)")
+            message = input().lower()
+            if message == "y":
+                decryptFile("settings/settings.json")
+                settings = {"username":username,"password":password,"server":url}
+                with open("settings/settings.json","w") as f:
+                    json.dump(settings,f)
+                encryptFile("settings/settings.json")
+                settings = readSettings()
+                server = settings["server"]
+                Connectloop = False
+            else:
+                print("server url not saved")
+                Connectloop = False
     except:
-        print("invalid url")
+        print("invalid url is the server up?")
         Connectloop = True
 
 while app == True:
-    loginloop = True
+    if username != "" and password != "":
+        print("account details found do you want to use them? (y/n)")
+        message = input().lower()
+        if message == "y":
+            ws.send("login")
+            ws.send(json.dumps({"username":username,"password":password}))
+            response = ws.recv()
+            if response == "success":
+                print("successfully logged in")
+                loginloop = False
+                account = True
+            else:
+                print("invalid username or password")
+                print("please enter them again\n")
+                loginloop = True
+        else: loginloop = True
+    else: loginloop = True
     while loginloop == True:
         print("please either login or register")
         message = input()
@@ -33,7 +158,9 @@ while app == True:
             if response == "success":
                 loginloop = False
                 print("successfully logged in")
+                username, password = saveAccount(username, password)
                 account = True
+
         elif message == "register":
             ws.send("register")
             print("please enter in your username")
@@ -43,20 +170,19 @@ while app == True:
             ws.send(json.dumps({"username":username,"password":password}))
             response = ws.recv()
             if response == "created":
+                username, password = saveAccount(username, password)
                 loginloop = False
-                print("account created")
                 account = True
             elif response == "exists":
                 print("account already exists")
-                print("please try again")
-                print("")
+                print("please try again\n")
             else:
                 print("unknown error")
-                print("please try again")
-                print("")
+                print("please try again\n")
         else:
             print("invalid message")
     while account == True:
+        settingsloop = False
         print(f"\nwelcome {username}\n")
         ws.send("getNotes")
         ws.send(json.dumps({"username":username,"password":password}))
@@ -65,7 +191,7 @@ while app == True:
         for note in notes:
             print(note)
         print("\nWhat would you like to do?")
-        print("read or add (a note)")
+        print("read, add (a note) or settings")
         message = input()
         if message == "read":
             print("please enter in the title of the note")
@@ -135,5 +261,25 @@ while app == True:
             else:
                 print("an error has occured")
                 print(f"error: {response}")
+        elif message == "settings":
+            settingsloop = True
+            while settingsloop == True:
+                print("What would you like to do?")
+                print("change username, change password, change server or (go) back")
+                message = input()
+                if message == "change username":
+                    settings = changeSettings("username")
+                    username = settings["username"]
+                elif message == "change password":
+                    settings = changeSettings("password")
+                    password = settings["password"]
+                elif message == "change server":
+                    settings = changeSettings("server")
+                    server = settings["server"]
+                elif message == "go" or message == "back":
+                    settingsloop = False
+                else:
+                    print("invalid message")
+                    print("please try again")
         else:
             print("invalid message")

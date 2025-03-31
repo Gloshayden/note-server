@@ -127,24 +127,24 @@ while Connectloop == True:
         Connectloop = True
 
     while app == True:
-        if username != "" and password != "":
-            print("account details found do you want to use them? (y/n)")
-            message = input().lower()
-            if message == "y":
-                ws.send("login")
-                ws.send(json.dumps({"username":username,"password":password}))
-                response = ws.recv()
-                if response == "success":
-                    print("successfully logged in")
-                    loginloop = False
-                    account = True
-                else:
-                    print("invalid username or password")
-                    print("please enter them again\n")
-                    loginloop = True
-            else: loginloop = True
-        else: loginloop = True
         while loginloop == True:
+            if username != "" and password != "":
+                print("account details found do you want to use them? (y/n)")
+                message = input().lower()
+                if message == "y":
+                    ws.send("login")
+                    ws.send(json.dumps({"username":username,"password":password}))
+                    response = ws.recv()
+                    if response == "success":
+                        print("successfully logged in")
+                        loginloop = False
+                        account = True
+                    else:
+                        print("invalid username or password")
+                        print("please enter them again\n")
+                        loginloop = True
+                else: loginloop = True
+            else: loginloop = True
             print("please either login or register")
             message = input()
             if message == "login":

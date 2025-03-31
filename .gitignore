@@ -5,3 +5,4 @@ server/accounts
 server/logs
 server/notes
 app/settings
+app/venv

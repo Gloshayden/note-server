@@ -86,6 +86,7 @@ cipher_suite = Fernet(keyinfo)
 
 app = True
 Connectloop = True
+loginloop = True
 account = False
 ws = websocket.WebSocket()
 
@@ -110,7 +111,6 @@ while Connectloop == True:
         if event == "Yes":
             window.close()
             url = server
-            print("TEst2")
             layout = [  [sg.Text(f"connecting to {url}")],
                         [sg.Text("Please Wait")]]
             window = sg.Window('Connecting to server', layout)
@@ -127,17 +127,17 @@ while Connectloop == True:
                             [sg.Text("retrying in 5 seconds")] ]
                 window = sg.Window('Error', layout)
                 time.sleep(5)
-    if event == sg.WIN_CLOSED or event == 'No':
-        window.close()
-        print("Test")
-        layout = [  [sg.Text("please enter in the ws url")],
-                    [sg.Text("example: ws://127.0.0.1:8000")],
-                    [sg.InputText()],
-                    [sg.Button('Confirm'), sg.Button('Cancel')] ]
-        window = sg.Window('Connect to server', layout)
-        event, values = window.read()
-    if event == sg.WIN_CLOSED or event == 'Cancel':
-        break
+        elif event == sg.WIN_CLOSED or event == 'No':
+            window.close()
+            layout = [  [sg.Text("please enter in the ws url")],
+                        [sg.Text("example: ws://127.0.0.1:8000")],
+                        [sg.InputText()],
+                        [sg.Button('Confirm'), sg.Button('Cancel')] ]
+            window = sg.Window('Connect to server', layout)
+            event, values = window.read()
+            if event == sg.WIN_CLOSED or event == 'Cancel':
+                break
+    event, values = window.read()
     if event == "Confirm":
         window.close()
         url = values[0]
@@ -170,7 +170,7 @@ while Connectloop == True:
 
     while app == True:
         while loginloop == True:
-            if username != "" and password != "":
+            if settings["username"] != "" and settings["password"] != "":
                 layout = [  [sg.Text("account details found do you want to use them?")],
                             [sg.Button('Yes'), sg.Button('No')] ]
                 window = sg.Window("login", layout)
@@ -184,8 +184,7 @@ while Connectloop == True:
                         account = True
                     else:
                         window.close()
-                        layout = [  [sg.Text("invalid username or password")],
-                                    [sg.Text("please enter them again")],
+                        layout = [  [sg.Text("invalid username or password")]
                                     [sg.Button('Ok')] ]
                         window = sg.Window("Error", layout)
                         loginloop = True
@@ -209,11 +208,11 @@ while Connectloop == True:
                     break
                 username = values['username']
                 password = values['password']
-                print(f"{username} {password}")
                 ws.send("login")
                 ws.send(json.dumps({"username":username,"password":password}))
                 response = ws.recv()
                 if response == "success":
+                    window.close()
                     loginloop = False
                     layout = [  [sg.Text("Do you want to save your account details?")],
                                 [sg.Button('Yes'), sg.Button('No')] ]
@@ -236,8 +235,8 @@ while Connectloop == True:
                 ws.send("register")
                 window.close()
                 layout = [  [sg.Text("please enter in your username and password")],
-                            [sg.InputText(default_text='Username', key='username')],
-                            [sg.InputText(default_text='Password', key='password')],
+                            [sg.Text("username"),sg.InputText(key='username')],
+                            [sg.Text("password "),sg.InputText(key='password')],
                             [sg.Button('Ok'), sg.Button('Cancel')] ]
                 window = sg.Window('login', layout)
                 event, values = window.read()
@@ -254,18 +253,22 @@ while Connectloop == True:
                     window = sg.Window("Save Details?", layout)
                     event, values = window.read()
                     if event == "Yes":
+                        loginloop = False
+                        account = True
                         username, password = saveAccount(username, password)
                     elif event == "No":
+                        loginloop = False
+                        account = True
                         break
-                    loginloop = False
-                    account = True
-                elif response == "exists":
+                if response == "exists":
+                    window.close()
                     layout = [  [sg.Text("an account wihth that username already exists")],
                                 [sg.Text("please try again")],
                                 [sg.Button('Ok')] ]
                     window = sg.Window("Error", layout)
-                elif event == sg.WIN_CLOSED or event == 'Cancel':
-                    break
+                    event, values = window.read()
+                    if event == sg.WIN_CLOSED or event == 'Cancel':
+                        break
                 else:
                     print("unknown error")
                     print("please try again\n")

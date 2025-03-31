@@ -127,6 +127,7 @@ while Connectloop == True:
         Connectloop = True
 
     while app == True:
+        loginloop = True
         while loginloop == True:
             if username != "" and password != "":
                 print("account details found do you want to use them? (y/n)")
@@ -173,7 +174,7 @@ while Connectloop == True:
                     username, password = saveAccount(username, password)
                     loginloop = False
                     account = True
-                elif response == "exists":
+                elif response == "Exists":
                     print("account already exists")
                     print("please try again\n")
                 else:

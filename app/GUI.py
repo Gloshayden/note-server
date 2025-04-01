@@ -181,6 +181,8 @@ while Connectloop == True:
                 if response == "success":
                     loginloop = False
                     account = True
+                    window.close()
+                    break
                 else:
                     window.close()
                     layout = [  [sg.Text("invalid username or password")]

@@ -169,27 +169,27 @@ while Connectloop == True:
             time.sleep(5)
 
     while app == True:
-        while loginloop == True:
-            if settings["username"] != "" and settings["password"] != "":
-                layout = [  [sg.Text("account details found do you want to use them?")],
-                            [sg.Button('Yes'), sg.Button('No')] ]
-                window = sg.Window("login", layout)
-                event, values = window.read()
-                if event == "Yes":
-                    ws.send("login")
-                    ws.send(json.dumps({"username":username,"password":password}))
-                    response = ws.recv()
-                    if response == "success":
-                        loginloop = False
-                        account = True
-                    else:
-                        window.close()
-                        layout = [  [sg.Text("invalid username or password")]
-                                    [sg.Button('Ok')] ]
-                        window = sg.Window("Error", layout)
-                        loginloop = True
-                else: loginloop = True
+        if settings["username"] != "" and settings["password"] != "":
+            layout = [  [sg.Text("account details found do you want to use them?")],
+                        [sg.Button('Yes'), sg.Button('No')] ]
+            window = sg.Window("login", layout)
+            event, values = window.read()
+            if event == "Yes":
+                ws.send("login")
+                ws.send(json.dumps({"username":username,"password":password}))
+                response = ws.recv()
+                if response == "success":
+                    loginloop = False
+                    account = True
+                else:
+                    window.close()
+                    layout = [  [sg.Text("invalid username or password")]
+                                [sg.Button('Ok')] ]
+                    window = sg.Window("Error", layout)
+                    loginloop = True
             else: loginloop = True
+        else: loginloop = True
+        while loginloop == True:
             window.close()
             layout = [  [sg.Text("please either login or register")],
                         [sg.Button('login'), sg.Button('register')] ]
@@ -273,5 +273,128 @@ while Connectloop == True:
                     print("unknown error")
                     print("please try again\n")
             else:
-                app = False
-                loginloop = False
+                print("invalid message")
+            while account == True:
+                try:
+                    window.close()
+                    layout = []
+                    layout += [[sg.Text(f"Welcome {username}")]]
+                    layout += [[sg.Text("Notes:")]]
+                    settingsloop = False
+                    ws.send("getNotes")
+                    ws.send(json.dumps({"username":username,"password":password}))
+                    response = ws.recv()
+                    notes = json.loads(response)
+                    for note in notes:
+                        layout += [[sg.Text(note)]]
+                    layout += [[sg.Text("What would you like to do?")]]
+                    layout += [[sg.Button("create"),sg.Button("read"),sg.Button("settings"),sg.Button("Exit")]]
+                    window = sg.Window("Notes", layout)
+                    event, values = window.read()
+                    message = event
+                    if message == "read":
+                        print("please enter in the title of the note")
+                        title = input()
+                        ws.send("readNote")
+                        ws.send(json.dumps({"username":username,"password":password,"title":title}))
+                        response = ws.recv()
+                        if response != "exists":
+                            note = json.loads(response)
+                            title = note["title"]
+                            print(f"\nTitle:{note["title"]} \n{note['content']}\n")
+                            print("what would you like to do?")
+                            print("edit, delete or (go) back")
+                            message = input()
+                            if message == "edit":
+                                print("would you like to edit the title or the content?")
+                                message = input()
+                                if message == "title":
+                                    print("please enter in the new title")
+                                    Newtitle = input()
+                                    ws.send("editNote")
+                                    ws.send(json.dumps({"username":username,"password":password,"title":title,"Newcontent":note["content"],"Newtitle":Newtitle,"conORtitle":"title"}))
+                                    response = ws.recv()
+                                    if response == "success":
+                                        print("note edited")
+                                    else:
+                                        print("an error has occured")
+                                        print(f"error: {response}")
+                                elif message == "content":
+                                    print("please enter in the new content")
+                                    Newcontent = input()
+                                    ws.send("editNote")
+                                    ws.send(json.dumps({"username":username,"password":password,"title":title,"Newcontent":Newcontent,"Newtitle":note["title"],"conORtitle":"content"}))
+                                    response = ws.recv()
+                                    if response == "success":
+                                        print("note edited")
+                                    else:
+                                        print("an error has occured")
+                                        print(f"error: {response}")
+                                else:
+                                    print("invalid message")
+                            elif message == "delete":
+                                ws.send("deleteNote")
+                                ws.send(json.dumps({"username":username,"password":password,"title":title}))
+                                response = ws.recv()
+                                if response == "success":
+                                    print("note deleted")
+                                else:
+                                    print("an error has occured")
+                                    print(f"error: {response}")
+    
+                            elif message == "back":
+                                continue
+                            else:
+                                print("invalid message")
+                                print("please try again")
+                        else:
+                            print("note not found")
+                            print("please try again")
+                    elif message == "add":
+                        print("please enter in the title of the note")
+                        title = input()
+                        print("please enter in the content of the note")
+                        content = input()
+                        ws.send("createNote")
+                        ws.send(json.dumps({"username":username,"password":password,"title":title,"content":content}))
+                        response = ws.recv()
+                        if response == "success":
+                            print("note created")
+                        else:
+                            print("an error has occured")
+                            print(f"error: {response}")
+                    elif message == "Exit" or message == sg.WIN_CLOSED:
+                        window.close()
+                        account = False
+                        exit(0)
+                    elif message == "settings":
+                        settingsloop = True
+                        while settingsloop == True:
+                            print("What would you like to do?")
+                            print("change username, change password, change server or (go) back")
+                            message = input()
+                            if message == "change username":
+                                settings = changeSettings("username")
+                                username = settings["username"]
+                            elif message == "change password":
+                                settings = changeSettings("password")
+                                password = settings["password"]
+                            elif message == "change server":
+                                settings = changeSettings("server")
+                                server = settings["server"]
+                            elif message == "go" or message == "back":
+                                settingsloop = False
+                            else:
+                                print("invalid message")
+                                print("please try again")
+                    else:
+                        print("invalid message")
+                except Exception as e:
+                    if str(e) == "[Errno 32] Broken pipe":
+                        print("\nDisconnected attempting to reconnect\n")
+                        ws.connect(url)
+                    else:
+                        print("an error has occured")
+                        print(f"error: {e}")
+                        exit(0)
+            

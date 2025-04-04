@@ -37,6 +37,7 @@ python GUI.py
 ```
 ### Web GUI (experimental)
 **Note: this is an experimental version and some elements my be broke**
+
 to run the web GUI version you will need to copy the code and the requirements.txt
 ```
 wget https://raw.githubusercontent.com/Gloshayden/note-server/refs/heads/main/app/GUIweb.py

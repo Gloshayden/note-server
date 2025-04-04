@@ -1,0 +1,489 @@
+import json, os, websocket, time
+import FreeSimpleGUIWeb as sg
+from cryptography.fernet import Fernet
+
+def encryptFile(FileName):
+    with open(FileName,"rb") as f:
+        Original = f.read()
+    encoded_file = cipher_suite.encrypt(Original)
+    with open(FileName,"wb") as f:
+        f.write(encoded_file)
+    return encoded_file
+
+def decryptFile(FileName):
+    with open(FileName,"rb") as f:
+        Encrypted = f.read()
+    decoded_file = cipher_suite.decrypt(Encrypted)
+    with open(FileName,"wb") as f:
+        f.write(decoded_file)
+    return decoded_file
+
+def readSettings():
+    with open("settings/settings.json","rb") as f:
+        decryptFile("settings/settings.json")
+        settings = json.load(f)
+    encryptFile("settings/settings.json")
+    return settings
+
+def saveAccount(username, password):
+        decryptFile("settings/settings.json")
+        settings = {"username":username,"password":password,"server":server}
+        with open("settings/settings.json","w") as f:
+            json.dump(settings,f)
+        encryptFile("settings/settings.json")
+        settings = readSettings()
+        username = settings["username"]
+        password = settings["password"]
+        return username, password
+
+def changeSettings(choice):
+    layout = [ [sg.Text("Do you want to delete or change a setting?")],
+                [sg.Button("Delete"), sg.Button("Change"), sg.Button("Back")]]
+    window = sg.Window("Change settings", layout)
+    event, values = window.read()
+    message = event
+    window.close()
+    if message == "Delete":
+        decryptFile("settings/settings.json")
+        if choice == "server": message = {"username":username,"password":password,"server":""}
+        elif choice == "username": message = {"username":"","password":password,"server":server}
+        elif choice == "password": message = {"username":username,"password":"","server":server}
+        with open("settings/settings.json","w") as f:
+            json.dump(message,f)
+        encryptFile("settings/settings.json")
+        settings = readSettings()
+        return settings
+    elif message == "Change":
+        layout = [  [sg.Text("What would you like to replace it with")],
+                    [sg.Text("New Info"),sg.InputText(key='info')],
+                    [sg.Button('Ok'), sg.Button('Cancel')] ]
+        window = sg.Window("Change settings", layout)
+        event, values = window.Read()
+        window.close()
+        newSetting = values['info']
+        decryptFile("settings/settings.json")
+        if choice == "server": message = {"username":username,"password":password,"server":newSetting}
+        elif choice == "username": message = {"username":newSetting,"password":password,"server":server}
+        elif choice == "password": message = {"username":username,"password":newSetting,"server":server}
+        with open("settings/settings.json","w") as f:
+            json.dump(message,f)
+        encryptFile("settings/settings.json")
+        settings = readSettings()
+        return settings
+
+if not os.path.exists("settings"):
+    os.mkdir("settings")
+    key = Fernet.generate_key()
+    with open("settings/key.key","wb") as f:
+        f.write(key)
+    cipher_suite = Fernet(key)
+    settings = {"username":"","password":"","server":""}
+    with open("settings/settings.json","w") as f:
+        json.dump(settings,f)
+    encryptFile("settings/settings.json")
+with open("settings/key.key","rb") as f:
+    keyinfo = f.read()
+cipher_suite = Fernet(keyinfo)
+
+app = True
+Connectloop = True
+loginloop = True
+account = False
+savedDetails = True
+ws = websocket.WebSocket()
+
+settings = readSettings()
+username = settings["username"]
+password = settings["password"]
+server = settings["server"]
+
+while Connectloop == True:
+    if server != "":
+        layout = [[sg.Text("You have a server saved. Do you want to connect to it?")],
+                  [sg.Button("Yes"), sg.Button("No")]]
+        window = sg.Window("Saved Server", layout)
+        event, values = window.read()
+        if event == "Yes":
+            window.close()
+            url = server
+            layout = [  [sg.Text(f"connecting to {url}")],
+                        [sg.Text("Please Wait")]]
+            window = sg.Window('Connecting to server', layout)
+            try:
+                layout = [  [sg.Text(f"connecting to {url}")],
+                            [sg.Text("Please Wait")]]
+                window = sg.Window('Connecting to server', layout)
+                ws.connect(url)
+                Connectloop = False
+                window.close()
+            except:
+                window.close()
+                layout = [  [sg.Text("Could not connect is the server up?")],
+                            [sg.Text("retrying in 5 seconds")] ]
+                window = sg.Window('Error', layout)
+                time.sleep(5)
+        elif event == sg.WIN_CLOSED or event == 'No':
+            window.close()
+            layout = [  [sg.Text("please enter in the ws url")],
+                        [sg.Text("example: ws://127.0.0.1:8000")],
+                        [sg.InputText()],
+                        [sg.Button('Confirm'), sg.Button('Cancel')] ]
+            window = sg.Window('Connect to server', layout)
+            event, values = window.read()
+            if event == sg.WIN_CLOSED or event == 'Cancel':
+                break
+    else:
+        layout = [  [sg.Text("please enter in the ws url")],
+                    [sg.Text("example: ws://127.0.0.1:8000")],
+                    [sg.InputText()],
+                    [sg.Button('Confirm'), sg.Button('Cancel')] ]
+        window = sg.Window('Connect to server', layout)
+        event, values = window.read()
+        if event == "Confirm":
+            window.close()
+            url = values[0]
+            try:
+                layout = [  [sg.Text(f"connecting to {url}")],
+                            [sg.Text("Please Wait")]]
+                window = sg.Window('Connecting to server', layout)
+                ws.connect(url)
+                Connectloop = False
+                window.close()
+                layout = [ [sg.Text("Do you want to save the URL?")],
+                            [sg.Button("Yes"), sg.Button("No")]]
+                window = sg.Window("Save details?", layout)
+                event, values = window.read()
+                if event == "Yes":
+                    decryptFile("settings/settings.json")
+                    settings = {"username":username,"password":password,"server":url}
+                    with open("settings/settings.json","w") as f:
+                        json.dump(settings,f)
+                    encryptFile("settings/settings.json")
+                    settings = readSettings()
+                    server = settings["server"]
+                    Connectloop = False
+            except:
+                window.close()
+                layout = [  [sg.Text("Could not connect is the server up?")],
+                            [sg.Text("retrying in 5 seconds")] ]
+                window = sg.Window('Error', layout)
+                time.sleep(5)
+
+    while app == True:
+        while savedDetails == True:
+            if settings["username"] != "" and settings["password"] != "":
+                layout = [  [sg.Text("account details found do you want to use them?")],
+                            [sg.Button('Yes'), sg.Button('No')] ]
+                window = sg.Window("login", layout)
+                event, values = window.read()
+                if event == "Yes":
+                    ws.send("login")
+                    ws.send(json.dumps({"username":username,"password":password}))
+                    response = ws.recv()
+                    if response == "success":
+                        loginloop = False
+                        account = True
+                        savedDetails = False
+                        window.close()
+                        break
+                    else:
+                        window.close()
+                        layout = [  [sg.Text("invalid username or password")]
+                                    [sg.Button('Ok')] ]
+                        window = sg.Window("Error", layout)
+                        loginloop = True
+            else: 
+                loginloop = True
+                savedDetails = False
+                break
+        while loginloop == True:
+            window.close()
+            layout = [  [sg.Text("please either login or register")],
+                        [sg.Button('login'), sg.Button('register')] ]
+            window = sg.Window('login', layout)
+            event, values = window.read()
+            message = event
+            if message == "login":
+                window.close()
+                layout = [  [sg.Text("please enter in your username and password")],
+                            [sg.Text("username"),sg.InputText(key='username')],
+                            [sg.Text("password "),sg.InputText(key='password')],
+                            [sg.Button('Ok'), sg.Button('Cancel')] ]
+                window = sg.Window('login', layout)
+                event, values = window.read()
+                if event == sg.WIN_CLOSED or event == 'Cancel':
+                    break
+                username = values['username']
+                password = values['password']
+                ws.send("login")
+                ws.send(json.dumps({"username":username,"password":password}))
+                response = ws.recv()
+                if response == "success":
+                    window.close()
+                    loginloop = False
+                    layout = [  [sg.Text("Do you want to save your account details?")],
+                                [sg.Button('Yes'), sg.Button('No')] ]
+                    window = sg.Window("Save Details?", layout)
+                    event, values = window.read()
+                    if event == "Yes":
+                        username, password = saveAccount(username, password)
+                        window.close()
+                    if event == "No":
+                        window.close()
+                    account = True
+                else:
+                    window.close()
+                    layout = [  [sg.Text("invalid username or password")],
+                                [sg.Text("please enter them again")],
+                                [sg.Button('Ok')] ]
+                    window = sg.Window("Error", layout)
+
+            elif message == "register":
+                ws.send("register")
+                window.close()
+                layout = [  [sg.Text("please enter in your username and password")],
+                            [sg.Text("username"),sg.InputText(key='username')],
+                            [sg.Text("password "),sg.InputText(key='password')],
+                            [sg.Button('Ok'), sg.Button('Cancel')] ]
+                window = sg.Window('login', layout)
+                event, values = window.read()
+                if event == sg.WIN_CLOSED or event == 'Cancel':
+                    break
+                username = values['username']
+                password = values['password']
+                ws.send(json.dumps({"username":username,"password":password}))
+                response = ws.recv()
+                if response == "created":
+                    window.close()
+                    layout = [  [sg.Text("Do you want to save your account details?")],
+                                [sg.Button('Yes'), sg.Button('No')] ]
+                    window = sg.Window("Save Details?", layout)
+                    event, values = window.read()
+                    if event == "Yes":
+                        loginloop = False
+                        account = True
+                        username, password = saveAccount(username, password)
+                    elif event == "No":
+                        loginloop = False
+                        account = True
+                        break
+                if response == "exists":
+                    window.close()
+                    layout = [  [sg.Text("an account wihth that username already exists")],
+                                [sg.Text("please try again")],
+                                [sg.Button('Ok')] ]
+                    window = sg.Window("Error", layout)
+                    event, values = window.read()
+                    if event == sg.WIN_CLOSED or event == 'Cancel':
+                        break
+                else:
+                    print("unknown error")
+                    print("please try again\n")
+            else:
+                window.close()
+                exit(0)
+        while account == True:
+            try:
+                window.close()
+                layout = []
+                layout += [[sg.Text(f"Welcome {username}")],
+                           [sg.Text("Notes:")]]
+                settingsloop = False
+                ws.send("getNotes")
+                ws.send(json.dumps({"username":username,"password":password}))
+                response = ws.recv()
+                notes = json.loads(response)
+                for note in notes:
+                    layout += [[sg.Text(note)]]
+                layout += [[sg.Text("What would you like to do?")],
+                           [sg.Button("create"),sg.Button("read"),sg.Button("settings"),sg.Button("Exit")]]
+                window = sg.Window("Notes", layout)
+                event, values = window.read()
+                message = event
+                if message == "read":
+                    window.close()
+                    layout = [[sg.Text("what note would you like to read")]] + [[sg.Button(note)] for note in notes] + [[sg.Text()],[sg.Button("Exit")]]
+                    window = sg.Window("Read Note", layout)
+                    event, values = window.read()
+                    if event == sg.WIN_CLOSED or event == "Exit":
+                        window.close()
+                        break
+                    else: title = event
+                    ws.send("readNote")
+                    ws.send(json.dumps({"username":username,"password":password,"title":title}))
+                    response = ws.recv()
+                    if response != "exists":
+                        window.close()
+                        note = json.loads(response)
+                        title = note["title"]
+                        layout = [[sg.Text(f"Title: {title}")],
+                                  [sg.Text("Content:")],
+                                  [sg.Text(note["content"])],
+                                  [sg.Text("What would you like to do?")],
+                                  [sg.Button("edit"),sg.Button("delete"),sg.Button("go back")]]
+                        window = sg.Window("Read Note", layout)
+                        event, values = window.read()
+                        message = event
+                        window.close()
+                        if message == sg.WIN_CLOSED or message == "go back":
+                            window.close()
+                            break
+                        elif message == "edit":
+                            window.close()
+                            layout = [[sg.Text("what would you like to edit?")],
+                                      [sg.Button("title"),sg.Button("content")], [sg.Button("go back")]]
+                            window = sg.Window("Edit Note", layout)
+                            event, values = window.read()
+                            message = event
+                            if message == "title":
+                                window.close()
+                                layout = [[sg.Text("please enter in the new title")],
+                                          [sg.InputText(key='title')],
+                                          [sg.Button('Ok'), sg.Button('Cancel')]]
+                                window = sg.Window('Change title', layout)
+                                event, values = window.read()
+                                if event == sg.WIN_CLOSED or event == 'Cancel':
+                                    window.close()
+                                    break
+                                Newtitle = values['title']
+                                ws.send("editNote")
+                                ws.send(json.dumps({"username":username,"password":password,"title":title,"newContent":note["content"],"newTitle":Newtitle,"conORtitle":"title"}))
+                                response = ws.recv()
+                                if response == "success":
+                                    window.close()
+                                    layout = [[sg.Text("note edited")],
+                                              [sg.Button("go back")]]
+                                    window = sg.Window("Edit Note", layout)
+                                else:
+                                    layout = [[sg.Text("an error has occured")],
+                                              [sg.Text(f"error: {response}")],
+                                              [sg.Button("go back")]]
+                                    window = sg.Window("Error", layout)
+                            elif message == "content":
+                                window.close()
+                                layout = [[sg.Text("please enter in the new content")],
+                                          [sg.Multiline(size=(None, 3),key='content')],
+                                          [sg.Button('Ok'), sg.Button('Cancel')]]
+                                window = sg.Window('Change content', layout)
+                                event, values = window.read()
+                                if event == sg.WIN_CLOSED or event == 'Cancel':
+                                    window.close()
+                                    break
+                                Newcontent = values['content']
+                                ws.send("editNote")
+                                ws.send(json.dumps({"username":username,"password":password,"title":title,"newContent":Newcontent,"newTitle":note["title"],"conORtitle":"content"}))
+                                response = ws.recv()
+                                if response == "success":
+                                    window.close()
+                                    layout = [[sg.Text("note edited")],
+                                              [sg.Button("go back")]]
+                                    window = sg.Window("Edit Note", layout)
+                                else:
+                                    layout = [[sg.Text("an error has occured")],
+                                              [sg.Text(f"error: {response}")],
+                                              [sg.Button("go back")]]
+                                    window = sg.Window("Error", layout)
+                            else:
+                                window.close()
+                                break
+                        elif message == "delete":
+                            window.close()
+                            layout = [[sg.Text("are you sure you want to delete this note?")],
+                                      [sg.Button("yes"),sg.Button("no")]]
+                            window = sg.Window("Delete Note", layout)
+                            event, values = window.read()
+                            message = event
+                            if message == "yes":
+                                ws.send("deleteNote")
+                                ws.send(json.dumps({"username":username,"password":password,"title":title}))
+                                response = ws.recv()
+                                if response == "success":
+                                    window.close()
+                                    layout = [[sg.Text("note Deleted")],
+                                              [sg.Button("go back")]]
+                                    window = sg.Window("Deleted Note", layout)
+                                else:
+                                    window.close()
+                                    layout = [[sg.Text("an error has occured")],
+                                              [sg.Text(f"error: {response}")],
+                                              [sg.Button("go back")]]
+                                    window = sg.Window("Error", layout)
+                            else:
+                                window.close()
+                                break
+                        elif message == "go back":
+                            window.close()
+                            break
+                    else:
+                        layout = [[sg.Text("an error has occured")],
+                                  [sg.Text(f"error: {response}")],
+                                  [sg.Button("go back")]]
+                        window = sg.Window("Error", layout)
+                elif message == "create":
+                    window.close()
+                    layout = [  [sg.Text("please enter in the title")],
+                                [sg.InputText(key='title')],
+                                [sg.Text("please enter in the new content")],
+                                [sg.Multiline(size=(None, 3),key='content')],
+                                [sg.Button('Ok'), sg.Button('Cancel')]]
+                    window = sg.Window('Create Note', layout)
+                    event, values = window.read()
+                    if event == sg.WIN_CLOSED or event == 'Cancel':
+                        window.close()
+                        break
+                    title = values['title']
+                    content = values['content']
+                    ws.send("createNote")
+                    ws.send(json.dumps({"username":username,"password":password,"title":title,"content":content}))
+                    response = ws.recv()
+                    if response == "success":
+                        window.close()
+                        layout = [[sg.Text("note created")],
+                                  [sg.Button("go back")]]
+                        window = sg.Window("Edit Note", layout)
+                    else:
+                        window.close()
+                        layout = [[sg.Text("an error has occured")],
+                                  [sg.Text(f"error: {response}")],
+                                  [sg.Button("go back")]]
+                        window = sg.Window("Error", layout)
+                elif message == "Exit" or message == sg.WIN_CLOSED:
+                    window.close()
+                    account = False
+                    exit(0)
+                elif message == "settings":
+                    settingsloop = True
+                    while settingsloop == True:
+                        window.close()
+                        layout = [  [sg.Text("what would you like to change")],
+                                    [sg.Button("change username"),sg.Button("change password"),sg.Button("change server"),sg.Button("go back")]]
+                        window = sg.Window("Settings", layout)
+                        event, values = window.read()
+                        message = event
+                        window.close()
+                        if message == "change username":
+                            settings = changeSettings("username")
+                            username = settings["username"]
+                        elif message == "change password":
+                            settings = changeSettings("password")
+                            password = settings["password"]
+                        elif message == "change server":
+                            settings = changeSettings("server")
+                            server = settings["server"]
+                        elif message == sg.WIN_CLOSED or message == "go back":
+                            settingsloop = False
+                            break
+                        else:
+                            print("invalid message")
+                            print("please try again")
+                else:
+                    print("invalid message")
+            except Exception as e:
+                if str(e) == "[Errno 32] Broken pipe":
+                    print("\nDisconnected attempting to reconnect\n")
+                    ws.connect(url)
+                else:
+                    print("an error has occured")
+                    print(f"error: {e}")
+                    exit(0)
+        

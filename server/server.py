@@ -1,4 +1,4 @@
-import asyncio, os, traceback, sys, app, json
+import asyncio, os, traceback, sys, json
 from websockets.server import serve
 from datetime import datetime
 from cryptography.fernet import Fernet
@@ -13,7 +13,7 @@ if not os.path.exists("key.key"):
     with open("key.key","wb") as f:
         f.write(key)
 
-import encryption
+import encryption, app
 async def handler(websocket):
     try:
         async for message in websocket:

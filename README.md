@@ -37,6 +37,7 @@ python GUI.py
 ```
 ### Web GUI (experimental)
 **Note: this is an experimental version and some elements my be broke**
+**This is also not ment to be used as a website, only a visual representation of the program**
 
 to run the web GUI version you will need to copy the code and the requirements.txt
 ```

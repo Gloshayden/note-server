@@ -1,6 +1,7 @@
 import json, os, websocket, time
 from cryptography.fernet import Fernet
 
+# used to encrypt and decrypt thee settings file
 def encryptFile(FileName):
     with open(FileName,"rb") as f:
         Original = f.read()
@@ -17,6 +18,7 @@ def decryptFile(FileName):
         f.write(decoded_file)
     return decoded_file
 
+# allows for the settings file to be read without having to repeat the code
 def readSettings():
     with open("settings/settings.json","rb") as f:
         decryptFile("settings/settings.json")
@@ -24,6 +26,7 @@ def readSettings():
     encryptFile("settings/settings.json")
     return settings
 
+# allows for the account information to be saved without having to repeat the code
 def saveAccount(username, password):
     print("Do you want to save the account details? (y/n)")
     message = input().lower()
@@ -40,6 +43,7 @@ def saveAccount(username, password):
     else:
         print("account details not saved")
 
+# this changes the saved settings with a CLI
 def changeSettings(choice):
     print("what would you like to do?")
     print("delete (setting) or change (setting)")
@@ -65,6 +69,7 @@ def changeSettings(choice):
         settings = readSettings()
         return settings
 
+# for first time startup, generates the key and settings files
 if not os.path.exists("settings"):
     os.mkdir("settings")
     key = Fernet.generate_key()
@@ -79,6 +84,7 @@ with open("settings/key.key","rb") as f:
     keyinfo = f.read()
 cipher_suite = Fernet(keyinfo)
 
+# stores all the looping variables
 app = True
 Connectloop = True
 account = False
@@ -93,6 +99,7 @@ print("Hi there welcome to the notes app!")
 print("please enter in the ws url")
 print("example: ws://127.0.0.1:8000")
 while Connectloop == True:
+    # checks if there is a saved server and if the user wants to connect to it
     if server != "":
         url = server
         print(f"connecting to {url}")
@@ -104,8 +111,10 @@ while Connectloop == True:
             print("retrying in 5 seconds")
             time.sleep(5)
     else:
+        # if there is no saved server, the user is asked to enter one
         url = input()
     try:
+        # try loop to see if the server is up
         ws.connect(url)
         if server == "":
             print("Do you want to save the server URL? (y/n)")
@@ -127,6 +136,7 @@ while Connectloop == True:
         Connectloop = True
 
     while app == True:
+        # if there are saved details, the user is asked if they want to use them
         if username != "" and password != "":
             print("account details found do you want to use them? (y/n)")
             message = input().lower()
@@ -134,6 +144,8 @@ while Connectloop == True:
                 ws.send("login")
                 ws.send(json.dumps({"username":username,"password":password}))
                 response = ws.recv()
+                # if the login is successful, the user is logged in
+                # this is asked by sending a request to the server
                 if response == "success":
                     print("successfully logged in")
                     loginloop = False
@@ -162,6 +174,7 @@ while Connectloop == True:
                         loginloop = True
                 else: loginloop = True
             else: loginloop = True
+            # if there are no saved details it will prompt the user to login or register
             print("please either login or register")
             message = input()
             if message == "login":
@@ -200,6 +213,7 @@ while Connectloop == True:
                 print("invalid message")
         while account == True:
             try:
+                # welcomes the user and lists the notes and options for the user
                 settingsloop = False
                 print(f"\nwelcome {username}\n")
                 ws.send("getNotes")
@@ -212,6 +226,7 @@ while Connectloop == True:
                 print("read, add (a note) or settings")
                 message = input()
                 if message == "read":
+                    # allows the user to read a note by typing out the name
                     print("please enter in the title of the note")
                     title = input()
                     ws.send("readNote")
@@ -225,9 +240,11 @@ while Connectloop == True:
                         print("edit, delete or (go) back")
                         message = input()
                         if message == "edit":
+                            # allows the user to edit a note
                             print("would you like to edit the title or the content?")
                             message = input()
                             if message == "title":
+                                # allows the user to edit the title
                                 print("please enter in the new title")
                                 Newtitle = input()
                                 ws.send("editNote")
@@ -239,6 +256,7 @@ while Connectloop == True:
                                     print("an error has occured")
                                     print(f"error: {response}")
                             elif message == "content":
+                                # allows the user to edit the content
                                 print("please enter in the new content")
                                 Newcontent = input()
                                 ws.send("editNote")
@@ -252,6 +270,7 @@ while Connectloop == True:
                             else:
                                 print("invalid message")
                         elif message == "delete":
+                            # allows the user to delete a note without a warning
                             ws.send("deleteNote")
                             ws.send(json.dumps({"username":username,"password":password,"title":title}))
                             response = ws.recv()
@@ -267,9 +286,11 @@ while Connectloop == True:
                             print("invalid message")
                             print("please try again")
                     else:
+                        # if there isnt a note with that title
                         print("note not found")
                         print("please try again")
                 elif message == "add":
+                    # allows the user to create a note
                     print("please enter in the title of the note")
                     title = input()
                     print("please enter in the content of the note")
@@ -283,6 +304,7 @@ while Connectloop == True:
                         print("an error has occured")
                         print(f"error: {response}")
                 elif message == "settings":
+                    # allows the user to change their settings
                     settingsloop = True
                     while settingsloop == True:
                         print("What would you like to do?")
@@ -305,10 +327,12 @@ while Connectloop == True:
                 else:
                     print("invalid message")
             except Exception as e:
+                # if the connection is lost the program will attempt to reconnect
                 if str(e) == "[Errno 32] Broken pipe":
                     print("\nDisconnected attempting to reconnect\n")
                     ws.connect(url)
                 else:
+                    # if that isnt the error then it will give out the error
                     print("an error has occured")
                     print(f"error: {e}")
                     exit(0)

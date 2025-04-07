@@ -2,6 +2,7 @@ import json, os, websocket, time
 import FreeSimpleGUI as sg
 from cryptography.fernet import Fernet
 
+# used to encrypt and decrypt thee settings file
 def encryptFile(FileName):
     with open(FileName,"rb") as f:
         Original = f.read()
@@ -18,6 +19,7 @@ def decryptFile(FileName):
         f.write(decoded_file)
     return decoded_file
 
+# allows for the settings file to be read without having to repeat the code
 def readSettings():
     with open("settings/settings.json","rb") as f:
         decryptFile("settings/settings.json")
@@ -25,6 +27,7 @@ def readSettings():
     encryptFile("settings/settings.json")
     return settings
 
+# allows for the account information to be saved without having to repeat the code
 def saveAccount(username, password):
         decryptFile("settings/settings.json")
         settings = {"username":username,"password":password,"server":server}
@@ -36,6 +39,7 @@ def saveAccount(username, password):
         password = settings["password"]
         return username, password
 
+# allows for the account information to be saved without having to repeat the code
 def changeSettings(choice):
     layout = [ [sg.Text("Do you want to delete or change a setting?")],
                 [sg.Button("Delete"), sg.Button("Change"), sg.Button("Back")]]
@@ -70,10 +74,8 @@ def changeSettings(choice):
         encryptFile("settings/settings.json")
         settings = readSettings()
         return settings
-    elif message == "Back":
-        settings = readSettings()
-        return settings
-
+    
+# for first time startup, generates the key and settings files
 if not os.path.exists("settings"):
     os.mkdir("settings")
     key = Fernet.generate_key()
@@ -88,6 +90,7 @@ with open("settings/key.key","rb") as f:
     keyinfo = f.read()
 cipher_suite = Fernet(keyinfo)
 
+# stores all the looping variables
 app = True
 Connectloop = True
 loginloop = True
@@ -95,12 +98,14 @@ account = False
 savedDetails = True
 ws = websocket.WebSocket()
 
+# any saved settings gets stored
 settings = readSettings()
 username = settings["username"]
 password = settings["password"]
 server = settings["server"]
 
 while Connectloop == True:
+    # checks if there is a saved server and if the user wants to connect to it
     if server != "":
         layout = [[sg.Text("You have a server saved. Do you want to connect to it?")],
                   [sg.Button("Yes"), sg.Button("No")]]
@@ -136,6 +141,7 @@ while Connectloop == True:
             if event == sg.WIN_CLOSED or event == 'Cancel':
                 break
     else:
+        # if there is no saved server, the user is asked to enter one
         layout = [  [sg.Text("please enter in the ws url")],
                     [sg.Text("example: ws://127.0.0.1:8000")],
                     [sg.InputText()],
@@ -145,6 +151,7 @@ while Connectloop == True:
         if event == "Confirm":
             window.close()
             url = values[0]
+            # try loop to see if the server is up
             try:
                 layout = [  [sg.Text(f"connecting to {url}")],
                             [sg.Text("Please Wait")]]
@@ -173,6 +180,7 @@ while Connectloop == True:
                 time.sleep(5)
 
     while app == True:
+        # if there are saved details, the user is asked if they want to use them
         while savedDetails == True:
             if settings["username"] != "" and settings["password"] != "":
                 layout = [  [sg.Text("account details found do you want to use them?")],
@@ -183,6 +191,8 @@ while Connectloop == True:
                     ws.send("login")
                     ws.send(json.dumps({"username":username,"password":password}))
                     response = ws.recv()
+                    # if the login is successful, the user is logged in
+                    # this is asked by sending a request to the server
                     if response == "success":
                         loginloop = False
                         account = True
@@ -204,6 +214,7 @@ while Connectloop == True:
                 savedDetails = False
                 break
         while loginloop == True:
+            # if there are no saved details it will prompt the user to login or register
             window.close()
             layout = [  [sg.Text("please either login or register")],
                         [sg.Button('login'), sg.Button('register')] ]
@@ -211,6 +222,7 @@ while Connectloop == True:
             event, values = window.read()
             message = event
             if message == "login":
+                # creates the GUI for the login
                 window.close()
                 layout = [  [sg.Text("please enter in your username and password")],
                             [sg.Text("username"),sg.InputText(key='username')],
@@ -246,6 +258,7 @@ while Connectloop == True:
                     window = sg.Window("Error", layout)
 
             elif message == "register":
+                # much like the login gui but this one is for registering
                 ws.send("register")
                 window.close()
                 layout = [  [sg.Text("please enter in your username and password")],
@@ -291,6 +304,7 @@ while Connectloop == True:
                 exit(0)
         while account == True:
             try:
+                # welcomes the user and lists the notes and options for the users
                 window.close()
                 layout = []
                 layout += [[sg.Text(f"Welcome {username}")],
@@ -308,6 +322,7 @@ while Connectloop == True:
                 event, values = window.read()
                 message = event
                 if message == "read":
+                    # allows the user to read a note by clicking on it
                     window.close()
                     layout = [[sg.Text("what note would you like to read")]] + [[sg.Button(note)] for note in notes] + [[sg.Text()],[sg.Button("Exit")]]
                     window = sg.Window("Read Note", layout)
@@ -336,6 +351,7 @@ while Connectloop == True:
                             window.close()
                             break
                         elif message == "edit":
+                            # allows the user to edit a note
                             window.close()
                             layout = [[sg.Text("what would you like to edit?")],
                                       [sg.Button("title"),sg.Button("content")], [sg.Button("go back")]]
@@ -343,6 +359,7 @@ while Connectloop == True:
                             event, values = window.read()
                             message = event
                             if message == "title":
+                                # allows the user to edit the title
                                 window.close()
                                 layout = [[sg.Text("please enter in the new title")],
                                           [sg.InputText(key='title')],
@@ -367,6 +384,7 @@ while Connectloop == True:
                                               [sg.Button("go back")]]
                                     window = sg.Window("Error", layout)
                             elif message == "content":
+                                # allows the user to edit the content
                                 window.close()
                                 layout = [[sg.Text("please enter in the new content")],
                                           [sg.Multiline(size=(None, 3),key='content')],
@@ -394,6 +412,7 @@ while Connectloop == True:
                                 window.close()
                                 break
                         elif message == "delete":
+                            # allows the user to delete a note with a warning
                             window.close()
                             layout = [[sg.Text("are you sure you want to delete this note?")],
                                       [sg.Button("yes"),sg.Button("no")]]
@@ -422,11 +441,13 @@ while Connectloop == True:
                             window.close()
                             break
                     else:
+                        # if there isnt a note with that title
                         layout = [[sg.Text("an error has occured")],
                                   [sg.Text(f"error: {response}")],
                                   [sg.Button("go back")]]
                         window = sg.Window("Error", layout)
                 elif message == "create":
+                    # allows the user to create a note
                     window.close()
                     layout = [  [sg.Text("please enter in the title")],
                                 [sg.InputText(key='title')],
@@ -459,6 +480,7 @@ while Connectloop == True:
                     account = False
                     exit(0)
                 elif message == "settings":
+                    # allows the user to change their settings
                     settingsloop = True
                     while settingsloop == True:
                         window.close()
@@ -486,10 +508,12 @@ while Connectloop == True:
                 else:
                     print("invalid message")
             except Exception as e:
+                # if the connection is lost the program will attempt to reconnect
                 if str(e) == "[Errno 32] Broken pipe":
                     print("\nDisconnected attempting to reconnect\n")
                     ws.connect(url)
                 else:
+                    # if that isnt the error then it will give out the error
                     print("an error has occured")
                     print(f"error: {e}")
                     exit(0)

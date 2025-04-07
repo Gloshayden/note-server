@@ -70,6 +70,9 @@ def changeSettings(choice):
         encryptFile("settings/settings.json")
         settings = readSettings()
         return settings
+    elif message == "Back":
+        settings = readSettings()
+        return settings
 
 if not os.path.exists("settings"):
     os.mkdir("settings")
@@ -192,6 +195,10 @@ while Connectloop == True:
                                     [sg.Button('Ok')] ]
                         window = sg.Window("Error", layout)
                         loginloop = True
+                else: 
+                    loginloop = True
+                    savedDetails = False
+                    break
             else: 
                 loginloop = True
                 savedDetails = False

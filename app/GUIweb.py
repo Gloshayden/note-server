@@ -133,6 +133,7 @@ while Connectloop == True:
                     [sg.Button('Confirm'), sg.Button('Cancel')] ]
         window = sg.Window('Connect to server', layout)
         event, values = window.read()
+        window.close()
         if event == "Confirm":
             url = values[0]
             try:
@@ -145,6 +146,7 @@ while Connectloop == True:
                             [sg.Button("Yes"), sg.Button("No")]]
                 window = sg.Window("Save details?", layout)
                 event, values = window.read()
+                window.close()
                 if event == "Yes":
                     decryptFile("settings/settings.json")
                     settings = {"username":username,"password":password,"server":url}
@@ -181,6 +183,10 @@ while Connectloop == True:
                                     [sg.Button('Ok')] ]
                         window = sg.Window("Error", layout)
                         loginloop = True
+                else: 
+                    loginloop = True
+                    savedDetails = False
+                    break
             else: 
                 loginloop = True
                 savedDetails = False
@@ -382,7 +388,7 @@ while Connectloop == True:
                     layout = [  [sg.Text("please enter in the title")],
                                 [sg.InputText(key='title')],
                                 [sg.Text("please enter in the new content")],
-                                [sg.Multiline(size=(None, 3),key='content')],
+                                [sg.Multiline(size=(50, 3),key='content')],
                                 [sg.Button('Ok'), sg.Button('Cancel')]]
                     window = sg.Window('Create Note', layout)
                     event, values = window.read()

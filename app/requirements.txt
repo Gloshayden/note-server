@@ -4,5 +4,5 @@ FreeSimpleGUI==5.2.0.post1
 FreeSimpleGUIWeb==1.1.0
 legacy-cgi==2.6.3
 pycparser==2.22
-setuptools==78.1.0
+setuptools==78.1.1
 websocket-client==1.8.0

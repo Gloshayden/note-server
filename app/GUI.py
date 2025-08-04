@@ -1,4 +1,4 @@
-import json, os, websocket, time
+import json, os, websocket, time, hashlib
 import FreeSimpleGUI as sg
 from cryptography.fernet import Fernet
 
@@ -233,7 +233,7 @@ while Connectloop == True:
                 if event == sg.WIN_CLOSED or event == 'Cancel':
                     break
                 username = values['username']
-                password = values['password']
+                password = hashlib.sha256(values['password'].encode()).hexdigest()
                 ws.send("login")
                 ws.send(json.dumps({"username":username,"password":password}))
                 response = ws.recv()
@@ -270,7 +270,7 @@ while Connectloop == True:
                 if event == sg.WIN_CLOSED or event == 'Cancel':
                     break
                 username = values['username']
-                password = values['password']
+                password = hashlib.sha256(values['password'].encode()).hexdigest()
                 ws.send(json.dumps({"username":username,"password":password}))
                 response = ws.recv()
                 if response == "created":

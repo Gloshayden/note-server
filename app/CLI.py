@@ -1,4 +1,4 @@
-import json, os, websocket, time
+import json, os, websocket, time, hashlib
 from cryptography.fernet import Fernet
 
 # used to encrypt and decrypt thee settings file
@@ -85,8 +85,7 @@ with open("settings/key.key","rb") as f:
 cipher_suite = Fernet(keyinfo)
 
 # stores all the looping variables
-app = True
-Connectloop = True
+app = False
 account = False
 ws = websocket.WebSocket()
 
@@ -96,22 +95,26 @@ password = settings["password"]
 server = settings["server"]
 
 print("Hi there welcome to the notes app!")
-print("please enter in the ws url")
-print("example: ws://127.0.0.1:8000")
-while Connectloop == True:
+while Connectloop := True:
     # checks if there is a saved server and if the user wants to connect to it
     if server != "":
         url = server
-        print(f"connecting to {url}")
-        try:
-            ws.connect(url)
-            Connectloop = False
-        except:
-            print("Could not connect is the server up?")
-            print("retrying in 5 seconds")
-            time.sleep(5)
-    else:
+        print("You have a server saved. Do you want to connect to it? (y/n)")
+        message = input().lower()
+        if message == "y":
+            print(f"connecting to {url}")
+            try:
+                ws.connect(url)
+                Connectloop = False
+                app = True
+            except:
+                print("Could not connect is the server up?")
+                print("retrying in 5 seconds")
+                time.sleep(5)
+        else: server = ""
+    if server == "":
         # if there is no saved server, the user is asked to enter one
+        print("please enter in the ws url \nexample: ws://127.0.0.1:8000")
         url = input()
     try:
         # try loop to see if the server is up
@@ -128,12 +131,13 @@ while Connectloop == True:
                 settings = readSettings()
                 server = settings["server"]
                 Connectloop = False
+                app = True
             else:
                 print("server url not saved")
                 Connectloop = False
+                app = True
     except:
         print("invalid url is the server up?")
-        Connectloop = True
 
     while app == True:
         # if there are saved details, the user is asked if they want to use them
@@ -173,7 +177,7 @@ while Connectloop == True:
                         print("please enter them again\n")
                         loginloop = True
                 else: loginloop = True
-            else: loginloop = True
+            else: continue
             # if there are no saved details it will prompt the user to login or register
             print("please either login or register")
             message = input()
@@ -182,7 +186,7 @@ while Connectloop == True:
                 print("please enter in your username")
                 username = input()
                 print("please enter in your password")
-                password = input()
+                password = hashlib.sha256(input().encode()).hexdigest()
                 ws.send(json.dumps({"username":username,"password":password}))
                 response = ws.recv()
                 if response == "success":
@@ -196,7 +200,7 @@ while Connectloop == True:
                 print("please enter in your username")
                 username = input()
                 print("please enter in your password")
-                password = input()
+                password = hashlib.sha256(input().encode()).hexdigest()
                 ws.send(json.dumps({"username":username,"password":password}))
                 response = ws.recv()
                 if response == "created":

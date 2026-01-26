@@ -1,8 +1,10 @@
-server/__pycache__
-server/venv
-server/key.key
-server/accounts
-server/logs
-server/notes
+*/__pycache__
+*/venv
+*/key.key
+*/accounts
+*/logs
+*/notes
 app/settings
 app/venv
+*/venv
+test.py

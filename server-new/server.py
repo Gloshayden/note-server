@@ -1,4 +1,4 @@
-import asyncio, os, traceback, sys, json
+import asyncio, os, traceback, sys, json, socket
 from websockets.server import serve
 from datetime import datetime
 from cryptography.fernet import Fernet
@@ -13,7 +13,7 @@ if not os.path.exists("key.key"):
     with open("key.key","wb") as f:
         f.write(key)
 
-import encryption, app
+import app
 async def handler(websocket):
     try:
         async for message in websocket:
@@ -167,8 +167,20 @@ async def handler(websocket):
         return
 
 async def main():
-    print("starting note server")
-    async with serve(handler, "127.0.0.1", 8000):
+    print(f"Starting server on {ip}:{port}")
+    async with serve(handler, ip, port):
         await asyncio.Future()  # run forever
 
-asyncio.run(main())
+if __name__ == "__main__":
+    args = sys.argv
+    if len(args) < 2:
+        print("no args, defaulting to 0.0.0.0:8000")
+        ip, port = "0.0.0.0", 8000
+    else:
+        ip = args[1]
+        try:
+            port = int(args[2])
+        except ValueError:
+            print("port must be an integer, defaulting to 8000")
+            port = 8000
+    asyncio.run(main())

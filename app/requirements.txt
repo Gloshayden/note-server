@@ -1,4 +1,4 @@
-cffi==1.17.1
+cffi==2.0.0
 cryptography==50.0.0
 FreeSimpleGUI==5.2.0.post1
 FreeSimpleGUIWeb==1.1.0

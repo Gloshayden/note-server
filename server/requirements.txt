@@ -1,4 +1,4 @@
-cffi==1.17.1
+cffi==2.0.0
 cryptography==50.0.0
 pycparser==2.22
 websocket-client==1.8.0

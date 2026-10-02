@@ -1,5 +1,5 @@
 cffi==1.17.1
-cryptography==44.0.2
+cryptography==50.0.0
 FreeSimpleGUI==5.2.0.post1
 FreeSimpleGUIWeb==1.1.0
 legacy-cgi==2.6.3
